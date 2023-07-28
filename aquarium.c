@@ -40,6 +40,7 @@ typedef struct {
 	float x, y;
 	float vx, vy;
 	int counter;
+	int constituition;
 } fish_t;
 
 typedef struct {
@@ -116,6 +117,13 @@ int rock_count = 0;
 
 fish_t fishes[128];
 int fish_count = 0;
+
+const fish_type_t NULLfish = {
+	.fish_left = "",
+	.fish_right = "",
+	.width = 0,
+	.height = 0
+};
 
 const char* big_rock[] = {
 	"     __   ",
@@ -399,6 +407,51 @@ void add_fish(fish_t fish) {
 	fishes[fish_count++] = fish;
 }
 
+void la_main_de_l_enfer_draw(float x, float y, bool snatchers_shut) {
+	int w, h;
+	term_get_size(&w, &h);
+
+	char* la_main_de_l_enfer;
+	int width = 50;
+
+	if (snatchers_shut) la_main_de_l_enfer =
+	"            __..,,... .,,,,,.                     "
+	"        ''''        ,'        ` .                 "
+	"                  ,'  ,.  ..      `  .            "
+	"                  `.,'      ..           `        "
+	"        __..,.             .  ..     .            "
+	"               ` .       .  `.  .` `              "
+	"                   ,  `.  `.  `._|,..             "
+	"                     .  `.  `..'                  "
+	"                      ` -'`''                     ";
+
+	else la_main_de_l_enfer =
+	"                                                  "
+	"                                                  "
+	"        /')    ./')             ('\\.    ('\\       "
+	"      /' /.--''./'')           (''\\.''--.\\ '\\     "
+	" :--''  ;    ''./'')           (''\\.''    ;  ''--:"
+	" :     '     ''./')             ('\\.''     '     :"
+	" :           ''./'               '\\.''           :"
+	" :--''-..--''''                     ''''--..-''--:"
+	"                                                  ";
+
+	if ((int) x - 20 + (int) width > w) {
+		width = w - (int) (x - 20);
+	}
+
+	if (s_is_colored) {
+		color_t c = { .r = 255, .g = 150, .b = 150 };
+		term_style_fg_color(COLOR(c));
+	}
+	term_cursor_move_to(x - 20, y);
+	for (int y = 0; y < 9; y++) {
+		term_write_transparent_length(la_main_de_l_enfer, width);
+		term_cursor_move(-width, 1);
+		la_main_de_l_enfer += 50;
+	}
+}
+
 void fish_draw(const fish_t* fish) {
 	const fish_type_t* ft = fish->type;
 
@@ -420,9 +473,20 @@ void fish_draw(const fish_t* fish) {
 	}
 }
 
+int constituition_saving_throw(void) {
+	static unsigned long seed = (0xFeed << 16) + 0xDead;
+	seed = seed * 1103515245+12345;
+	return 1 + seed % 2000;
+}
+
 void fish_update(fish_t* fish) {
 	int w, h;
 	term_get_size(&w, &h);
+
+	if (fish->constituition < 0 || (fish->x > 21 && constituition_saving_throw() < 2)) {
+		fish->constituition--;
+		return;
+	}
 
 	fish->x = clamp(fish->x + fish->vx, 0, w - fish->type->width + 1);
 	fish->y = clamp(fish->y + fish->vy, surface_level + 1, h - fish->type->height + 1);
@@ -597,6 +661,7 @@ int main(int argc, char** argv) {
 				.vx = -0.2,
 				.vy = 0.05,
 				.counter = random_number(0, 200),
+				.constituition = 0,
 			});
 		}
 	} else {
@@ -610,6 +675,7 @@ int main(int argc, char** argv) {
 				.vx = -0.2,
 				.vy = 0.05,
 				.counter = random_number(0, 200),
+				.constituition = 0,
 			});
 		}
 	}
@@ -624,7 +690,18 @@ int main(int argc, char** argv) {
 
 		for (int i = 0; i < fish_count; i++) {
 			fish_update(&fishes[i]);
-			fish_draw(&fishes[i]);
+			if (fishes[i].constituition < 0) {
+				if (-fishes[i].constituition > 2 * (int) fishes[i].y) {
+					fishes[i].type = &NULLfish;
+				} else if (-fishes[i].constituition > (int) fishes[i].y) {
+					la_main_de_l_enfer_draw(fishes[i].x, 2 * (int) fishes[i].y + fishes[i].constituition, 1);
+				} else {
+					la_main_de_l_enfer_draw(fishes[i].x, -fishes[i].constituition, 0);
+					fish_draw(&fishes[i]);
+				}
+			} else {
+				fish_draw(&fishes[i]);
+			}
 		}
 
 		if (show_bubbles) {
