@@ -7,7 +7,9 @@
 #include <sys/termios.h>
 
 void term_clear(void) {
-	printf("\e[2J");
+	int w, h;
+	term_get_size(&w, &h);
+	term_write_char_n(' ', w * h);
 }
 
 void term_clear_before(void) {
@@ -80,7 +82,7 @@ void term_write_char_n(char c, int n) {
 }
 
 void term_style_none(void) {
-	printf("\e[0m");
+	printf("\e[7m");
 }
 
 void term_style_fg_color(int r, int g, int b) {
