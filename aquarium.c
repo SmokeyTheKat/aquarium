@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <signal.h>
 
 #include "term.h"
 
@@ -116,6 +117,8 @@ int rock_count = 0;
 
 fish_t fishes[128];
 int fish_count = 0;
+
+bool interrupt = false;
 
 const char* big_rock[] = {
 	"     __   ",
@@ -502,7 +505,13 @@ void draw_fish_tank(void) {
 	}
 }
 
+void sigint_handle(int sig) {
+	signal(sig, SIG_IGN);
+	interrupt = true;
+}
+
 int main(int argc, char** argv) {
+	signal(SIGINT, sigint_handle);
 	srand(time(NULL));
 
 	char* fish_path = PREFIX "/share/aquarium/fish";
@@ -614,7 +623,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	while (1) {
+	while (interrupt == false) {
 		term_style_none();
 		term_clear();
 
