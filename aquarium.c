@@ -90,8 +90,8 @@ void bubbler_bubble(void);
 
 void draw_fish_tank(void);
 
-bool s_is_colored = true;
-bool s_has_waves = true;
+bool is_colored = true;
+bool has_waves = true;
 
 int surface_level = 2;
 float water_density = 0.95;
@@ -225,7 +225,7 @@ void seaweed_draw(void) {
 	int w, h;
 	term_get_size(&w, &h);
 
-	if (s_is_colored) {
+	if (is_colored) {
 		term_style_fg_color(30, 255, 30);
 	}
 	for (int i = 0; i < seaweed_count; i++) {
@@ -271,7 +271,7 @@ void rocks_draw(void) {
 	int w, h;
 	term_get_size(&w, &h);
 
-	if (s_is_colored) {
+	if (is_colored) {
 		term_style_fg_color(180, 180, 180);
 	}
 
@@ -412,7 +412,7 @@ void fish_draw(const fish_t* fish) {
 		line = ft->fish_left;
 	}
 
-	if (s_is_colored) {
+	if (is_colored) {
 		term_style_fg_color(COLOR(fish->color));
 	}
 	term_cursor_move_to(fish->x, fish->y);
@@ -483,13 +483,13 @@ void draw_fish_tank(void) {
 	int w, h;
 	term_get_size(&w, &h);
 
-	if (s_is_colored) {
+	if (is_colored) {
 		term_style_fg_color(0, 255, 255);
 	}
 
 	term_cursor_move_to(0, surface_level);
 
-	if (s_has_waves) {
+	if (has_waves) {
 		static int counter = 0;
 		counter -= 1;
 		int wave_pos = counter / 2;
@@ -538,13 +538,13 @@ int main(int argc, char** argv) {
 		} else if (strcmp(argv[i], "-e") == 0) {
 			on_of_each_fish = true;
 		} else if (strcmp(argv[i], "-c") == 0) {
-			s_is_colored = false;
+			is_colored = false;
 		} else if (strcmp(argv[i], "-t") == 0) {
 			show_fish_tank = false;
 		} else if (strcmp(argv[i], "-u") == 0) {
 			show_bubbles = false;
 		} else if (strcmp(argv[i], "-w") == 0) {
-			s_has_waves = false;
+			has_waves = false;
 		} else if (
 			strcmp(argv[i], "-h") == 0 ||
 			strcmp(argv[i], "--help") == 0
