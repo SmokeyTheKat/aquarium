@@ -1,29 +1,19 @@
 #include "term.h"
 
 #include <stdio.h>
-#include <stdbool.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/termios.h>
 
 void term_clear(void) {
-	printf("\e[2J");
-}
-
-void term_clear_before(void) {
-	printf("\e[1J");
-}
-
-void term_clear_after(void) {
-	printf("\e[0J");
+	printf("\x1b[2J");
 }
 
 void term_save_screen(void) {
-	printf("\e[?1049h");
+	printf("\x1b[?1049h");
 }
 
 void term_load_screen(void) {
-	printf("\e[?1049l");
+	printf("\x1b[?1049l");
 }
 
 void term_get_size(int* width, int* height) {
@@ -33,43 +23,17 @@ void term_get_size(int* width, int* height) {
 	*height = w.ws_row;
 }
 
-void term_write(const char* str) {
-	for (int i = 0; str[i] != 0; i++) {
-		fputc(str[i], stdout);
-	}
-}
-
 void term_write_transparent(const char* str) {
 	term_write_transparent_length(str, strlen(str));
 }
 
-void term_write_length(const char* str, int length) {
+void term_write_transparent_length(const char* str, int length) {
 	for (int i = 0; i < length && str[i] != 0; i++) {
-		fputc(str[i], stdout);
-	}
-}
-
-void term_write_transparent_length(const char* str, int len) {
-	int end = len - 1;
-	while (end > 0 && str[end] == ' ') end--;
-	end++;
-
-	bool in_shape = false;
-	for (int i = 0; i < end; i++) {
-		if (in_shape == false) {
-			if (str[i] == ' ') {
-				printf("\e[C");
-			} else {
-				in_shape = true;
-				fputc(str[i], stdout);
-			}
+		if (str[i] == '\t') {
+			term_cursor_move(1, 0);
 		} else {
 			fputc(str[i], stdout);
 		}
-	}
-
-	if (len - end > 0) {
-		printf("\e[%dC", len - end);
 	}
 }
 
@@ -80,29 +44,25 @@ void term_write_char_n(char c, int n) {
 }
 
 void term_style_none(void) {
-	printf("\e[0m");
+	printf("\x1b[0m");
 }
 
 void term_style_fg_color(int r, int g, int b) {
-	printf("\e[38;2;%d;%d;%dm", r, g, b);
-}
-
-void term_style_bg_color(int r, int g, int b) {
-	printf("\e[48;2;%d;%d;%dm", r, g, b);
+	printf("\x1b[38;2;%d;%d;%dm", r, g, b);
 }
 
 void term_cursor_hide(void) {
-	printf("\e[?25l");
+	printf("\x1b[?25l");
 }
 
 void term_cursor_show(void) {
-	printf("\e[?25h");
+	printf("\x1b[?25h");
 }
 
 void term_cursor_move_to(int x, int y) {
 	x += 1;
 	y += 1;
-	printf("\e[%d;%dH", y, x);
+	printf("\x1b[%d;%dH", y, x);
 }
 
 void term_cursor_home(void) {
@@ -111,14 +71,14 @@ void term_cursor_home(void) {
 
 void term_cursor_move(int dx, int dy) {
 	if (dx > 0) {
-		printf("\e[%dC", dx);
+		printf("\x1b[%dC", dx);
 	} else if (dx < 0) {
-		printf("\e[%dD", -dx);
+		printf("\x1b[%dD", -dx);
 	}
 
 	if (dy > 0) {
-		printf("\e[%dB", dy);
+		printf("\x1b[%dB", dy);
 	} else if (dy < 0) {
-		printf("\e[%dA", -dy);
+		printf("\x1b[%dA", -dy);
 	}
 }

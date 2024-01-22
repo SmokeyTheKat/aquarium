@@ -3,16 +3,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <string.h>
 #include <time.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <assert.h>
 #include <math.h>
 #include <dirent.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include <signal.h>
 
@@ -30,8 +26,8 @@ typedef struct {
 } color_t;
 
 typedef struct {
-	char* fish_left;
-	char* fish_right;
+	char* left_sprite;
+	char* right_sprite;
 	int width, height;
 } fish_type_t;
 
@@ -57,80 +53,95 @@ typedef struct {
 } seaweed_t;
 
 typedef struct {
-	int type;
+	char* sprite;
+	int width, height;
+} rock_type_t;
+
+typedef struct {
+	const rock_type_t* type;
 	int x;
 } rock_t;
 
-float clamp(float v, float a, float b);
-float random_number(float a, float b);
-bool is_file(const char* name);
-void delay(long ms);
+static float clamp(float v, float a, float b);
+static float random_number(float a, float b);
+static bool is_file(const char* name);
+static void delay(long ms);
 
-void add_bubble(bubble_t bub);
-void remove_bubble(int idx);
-void bubbles_update(void);
-void bubbles_draw(void);
+static void add_bubble(bubble_t bub);
+static void remove_bubble(int idx);
+static void bubbles_update(void);
+static void bubbles_draw(void);
 
-void generate_seaweed(int count);
-void seaweed_draw(void);
+static void generate_seaweed(int count);
+static void seaweed_draw(void);
 
-void generate_rocks(int count);
-void rocks_draw(void);
+static void generate_rocks(int count);
+static void rocks_draw(void);
 
-fish_type_t load_fish_type(const char* path);
-void free_fish_type(fish_type_t* ft);
-void load_fish_types_from_directory(const char* dir);
-void free_fish_types(void);
+static void sprite_fill_background_transparent(char* ft, int w, int h);
+static void sprite_fill_background_transparent_no_bottom(char* ft, int w, int h);
+static void sprite_fill_background_transparent_fill_from(char* ft, int w, int h, int x, int y);
 
-void add_fish(fish_t fish);
-void fish_draw(const fish_t* fish);
+static fish_type_t load_fish_type(const char* path);
+static void free_fish_type(fish_type_t* ft);
+static void load_fish_types_from_directory(const char* dir);
+static void free_fish_types(void);
 
-void bubbler_draw(void);
-void bubbler_bubble(void);
+static void add_fish(fish_t fish);
+static void fish_draw(const fish_t* fish);
 
-void draw_fish_tank(void);
+static void bubbler_draw(void);
+static void bubbler_bubble(void);
 
-bool is_colored = true;
-bool has_waves = true;
+static void draw_fish_tank(void);
 
-int surface_level = 2;
-float water_density = 0.95;
-float water_boyancey = 0.015;
+static bool is_colored = true;
+static bool has_waves = true;
 
-int fish_think_speed = 100;
-float fish_speed = 0.4;
+static int surface_level = 2;
+static float water_density = 0.95;
+static float water_boyancey = 0.015;
 
-float bubbler_pos = 15;
-float bubbler_height = 30;
+static int fish_think_speed = 100;
+static float fish_speed = 0.4;
 
-fish_type_t fish_types[128];
-int fish_types_count = 0;
+static float bubbler_pos = 15;
+static float bubbler_height = 30;
 
-bubble_t bubbles[256];
-int bubble_count = 0;
+static fish_type_t fish_types[128];
+static int fish_types_count = 0;
 
-seaweed_t seaweeds[32];
-int seaweed_count = 0;
+static bubble_t bubbles[256];
+static int bubble_count = 0;
 
-rock_t rocks[128];
-int rock_count = 0;
+static seaweed_t seaweeds[32];
+static int seaweed_count = 0;
 
-fish_t fishes[128];
-int fish_count = 0;
+static rock_t rocks[128];
+static int rock_count = 0;
 
-bool interrupt = false;
+static fish_t fishes[128];
+static int fish_count = 0;
 
-const char* big_rock[] = {
-	"     __   ",
-	"   _/  \\  ",
-	"  /     \\ ",
-	" /      | ",
-	"/        \\",
+static bool interrupt = false;
+
+static char big_rock_sprite[] =
+	"     __   "
+	"   _/  \\  "
+	"  /     \\ "
+	" /      | "
+	"/        \\";
+
+static rock_type_t big_rock = {
+	big_rock_sprite, 10, 5
 };
 
-const char* small_rock[] = {
-	" _--_ ",
-	"/    |",
+static char small_rock_sprite[] =
+	" _--_ "
+	"/    |";
+
+static rock_type_t small_rock = {
+	small_rock_sprite, 6, 2
 };
 
 float clamp(float v, float a, float b) {
@@ -213,7 +224,7 @@ void generate_seaweed(int count) {
 			random_number(0, w),
 			random_number(3, 8),
 			random_number(20, 80),
-			0,
+			0
 		};
 		seaweeds[seaweed_count++] = sw;
 	}
@@ -253,15 +264,15 @@ void generate_rocks(int count) {
 	int big_count = count - small_count;
 	for (int i = 0; i < big_count; i++) {
 		rock_t r = {
-			1,
-			random_number(0, w - strlen(big_rock[0])),
+			&big_rock,
+			random_number(0, w - big_rock.width)
 		};
 		rocks[rock_count++] = r;
 	}
 	for (int i = 0; i < small_count; i++) {
 		rock_t r = {
-			0,
-			random_number(0, w - strlen(small_rock[0])),
+			&small_rock,
+			random_number(0, w - small_rock.width)
 		};
 		rocks[rock_count++] = r;
 	}
@@ -277,24 +288,57 @@ void rocks_draw(void) {
 
 	for (int i = 0; i < rock_count; i++) {
 		rock_t* r = &rocks[i];
-		if (r->type == 0) {
-			int rock_height = ARRAY_LEN(small_rock);
-			int rock_width = strlen(small_rock[0]);
-			term_cursor_move_to(r->x, h - rock_height);
-			for (int y = 0; y < rock_height; y++) {
-				term_write_transparent(small_rock[y]);
-				term_cursor_move(-rock_width, 1);
-			}
-		} else if (r->type == 1) {
-			int rock_height = ARRAY_LEN(big_rock);
-			int rock_width = strlen(big_rock[0]);
-			term_cursor_move_to(r->x, h - rock_height);
-			for (int y = 0; y < rock_height; y++) {
-				term_write_transparent(big_rock[y]);
-				term_cursor_move(-rock_width, 1);
-			}
+		term_cursor_move_to(r->x, h - r->type->height);
+		const char* sprite = r->type->sprite;
+		for (int y = 0; y < r->type->height; y++) {
+			term_write_transparent_length(sprite, r->type->width);
+			term_cursor_move(-r->type->width, 1);
+			sprite += r->type->width;
 		}
+	}
+}
 
+void sprite_fill_background_transparent_fill_from(char* ft, int w, int h, int x, int y) {
+	if (ft[y * w + x] != ' ') return;
+	ft[y * w + x] = '\t';
+
+	if (x + 1 < w) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, x + 1, y);
+	}
+
+	if (x - 1 >= 0) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, x - 1, y);
+	}
+
+	if (y + 1 < h) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, x, y + 1);
+	}
+
+	if (y - 1 >= 0) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, x, y - 1);
+	}
+}
+
+void sprite_fill_background_transparent(char* ft, int w, int h) {
+	for (int x = 0; x < w; x++) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, x, 0);
+		sprite_fill_background_transparent_fill_from(ft, w, h, x, h - 1);
+	}
+
+	for (int y = 0; y < h; y++) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, 0, y);
+		sprite_fill_background_transparent_fill_from(ft, w, h, w - 1, y);
+	}
+}
+
+void sprite_fill_background_transparent_no_bottom(char* ft, int w, int h) {
+	for (int x = 0; x < w; x++) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, x, 0);
+	}
+
+	for (int y = 0; y < h; y++) {
+		sprite_fill_background_transparent_fill_from(ft, w, h, 0, y);
+		sprite_fill_background_transparent_fill_from(ft, w, h, w - 1, y);
 	}
 }
 
@@ -328,11 +372,11 @@ fish_type_t load_fish_type(const char* path) {
 
 	int i = 0;
 
-	fish_type.fish_left = malloc(fish_type.width * fish_type.height + 1);
-	fish_type.fish_left[fish_type.width * fish_type.height] = 0;
+	fish_type.left_sprite = malloc(fish_type.width * fish_type.height + 1);
+	fish_type.left_sprite[fish_type.width * fish_type.height] = 0;
 	for (int y = 0; y < fish_type.height; y++) {
 		memcpy(
-			fish_type.fish_left + y * fish_type.width,
+			fish_type.left_sprite + y * fish_type.width,
 			&data[i],
 			fish_type.width
 		);
@@ -341,11 +385,11 @@ fish_type_t load_fish_type(const char* path) {
 
 	i += 1;
 
-	fish_type.fish_right = malloc(fish_type.width * fish_type.height + 1);
-	fish_type.fish_right[fish_type.width * fish_type.height] = 0;
+	fish_type.right_sprite = malloc(fish_type.width * fish_type.height + 1);
+	fish_type.right_sprite[fish_type.width * fish_type.height] = 0;
 	for (int y = 0; y < fish_type.height; y++) {
 		memcpy(
-			fish_type.fish_right + y * fish_type.width,
+			fish_type.right_sprite + y * fish_type.width,
 			&data[i],
 			fish_type.width
 		);
@@ -355,13 +399,15 @@ fish_type_t load_fish_type(const char* path) {
 	free(data);
 	fclose(fp);
 
+	sprite_fill_background_transparent(fish_type.left_sprite, fish_type.width, fish_type.height);
+	sprite_fill_background_transparent(fish_type.right_sprite, fish_type.width, fish_type.height);
+
 	return fish_type;
 }
 
-
 void free_fish_type(fish_type_t* ft) {
-	free(ft->fish_left);
-	free(ft->fish_right);
+	free(ft->left_sprite);
+	free(ft->right_sprite);
 }
 
 void load_fish_types_from_directory(const char* dir_path) {
@@ -382,7 +428,7 @@ void load_fish_types_from_directory(const char* dir_path) {
 
 		if (is_file(fish_path)) {
 			fish_type_t fish = load_fish_type(fish_path);
-	
+
 			assert(fish_types_count < ARRAY_LEN(fish_types));
 			fish_types[fish_types_count++] = fish;
 		}
@@ -407,9 +453,9 @@ void fish_draw(const fish_t* fish) {
 
 	const char* line;
 	if (fish->vx >= 0) {
-		line = ft->fish_right;
+		line = ft->right_sprite;
 	} else {
-		line = ft->fish_left;
+		line = ft->left_sprite;
 	}
 
 	if (is_colored) {
@@ -427,7 +473,7 @@ void fish_update(fish_t* fish) {
 	int w, h;
 	term_get_size(&w, &h);
 
-	fish->x = clamp(fish->x + fish->vx, 0, w - fish->type->width + 1);
+	fish->x = clamp(fish->x + fish->vx, 0, w - fish->type->width);
 	fish->y = clamp(fish->y + fish->vy, surface_level + 1, h - fish->type->height + 1);
 
 	fish->counter += 1;
@@ -436,15 +482,15 @@ void fish_update(fish_t* fish) {
 		fish->vy = random_number(-fish_speed / 2.0, fish_speed / 2.0);
 		fish->counter = fish->counter % fish_think_speed;
 
-		float x = fish->x;
-		float vx = 0.25;
+		float bub_x = fish->x;
+		float bub_vx = 0.25;
 		if (fish->vx > 0) {
-			x += fish->type->width;
+			bub_x += fish->type->width;
 		} else {
-			vx *= -1.0;
+			bub_vx *= -1.0;
 		}
-		float y = fish->y + (fish->type->height / 2.0);
-		add_bubble((bubble_t){ x, y, fish->vx + vx, fish->vy - 0.05 });
+		float bub_y = fish->y + (fish->type->height / 2.0);
+		add_bubble((bubble_t){ bub_x, bub_y, fish->vx + bub_vx, fish->vy - 0.05 });
 	}
 }
 
@@ -529,7 +575,7 @@ int main(int argc, char** argv) {
 		} else if (strcmp(argv[i], "-b") == 0) {
 			show_bubbler = false;
 		} else if (strcmp(argv[i], "-x") == 0) {
-			srand(atoi(argv[i + 1]));;
+			srand(atoi(argv[i + 1]));
 			i += 1;
 		} else if (strcmp(argv[i], "-s") == 0) {
 			show_seaweed = false;
@@ -567,6 +613,9 @@ int main(int argc, char** argv) {
 
 	load_fish_types_from_directory(fish_path);
 
+	sprite_fill_background_transparent_no_bottom(big_rock.sprite, big_rock.width, big_rock.height);
+	sprite_fill_background_transparent_no_bottom(small_rock.sprite, small_rock.width, small_rock.height);
+
 	term_save_screen();
 	term_clear();
 	term_cursor_home();
@@ -593,7 +642,7 @@ int main(int argc, char** argv) {
 		{ 0, 102, 204 },
 		{ 255, 51, 51 },
 		{ 255, 51, 255 },
-		{ 255, 51, 153 },
+		{ 255, 51, 153 }
 	};
 
 	if (on_of_each_fish) {
@@ -605,7 +654,7 @@ int main(int argc, char** argv) {
 				.y = random_number(0, h - 4),
 				.vx = -0.2,
 				.vy = 0.05,
-				.counter = random_number(0, 200),
+				.counter = random_number(0, 200)
 			});
 		}
 	} else {
@@ -618,7 +667,7 @@ int main(int argc, char** argv) {
 				.y = random_number(0, h - 4),
 				.vx = -0.2,
 				.vy = 0.05,
-				.counter = random_number(0, 200),
+				.counter = random_number(0, 200)
 			});
 		}
 	}
@@ -653,7 +702,7 @@ int main(int argc, char** argv) {
 		if (show_rocks) {
 			rocks_draw();
 		}
-	
+
 		fflush(stdout);
 		delay(50);
 	}

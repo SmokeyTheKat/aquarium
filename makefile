@@ -1,11 +1,11 @@
-PREFIX=~/.local
+PREFIX := ~/.local
 
-TARGET=./aquarium
+TARGET := ./aquarium
 
-CC=gcc
-CFLAGS=-std=c99 -lm -O0 -g -DPREFIX=\"$(shell realpath $(PREFIX))\" -Wall -Werror
+CC := gcc
+CFLAGS := -std=c99 -lm -Oz -DPREFIX=\"$(shell realpath $(PREFIX))\" -Wall -Werror -Wno-array-bounds
 
-SRCS=aquarium.c term.c
+SRCS := aquarium.c term.c
 
 all:
 	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET) 
@@ -16,4 +16,4 @@ install:
 	cp $(TARGET) $(PREFIX)/bin/
 
 tc: all
-	$(TARGET)
+	$(TARGET) -e
