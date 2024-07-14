@@ -231,7 +231,7 @@ void generate_seaweed(int count) {
 }
 
 void seaweed_draw(void) {
-	const char* seaweed_segements[2] = { " )", "( " };
+	const char* seaweed_segements[2] = { "\t)", "(\t" };
 
 	int w, h;
 	term_get_size(&w, &h);

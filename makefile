@@ -3,7 +3,7 @@ PREFIX := ~/.local
 TARGET := ./aquarium
 
 CC := gcc
-CFLAGS := -std=c99 -lm -Oz -DPREFIX=\"$(shell realpath $(PREFIX))\" -Wall -Werror -Wno-array-bounds
+CFLAGS := -std=c99 -lm -O3 -DPREFIX=\"$(shell realpath $(PREFIX))\" -Wall -Werror -Wno-array-bounds
 
 SRCS := aquarium.c term.c
 
